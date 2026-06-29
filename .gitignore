@@ -1,0 +1,21 @@
+# 数据集（大文件，需自行下载/切片）
+data/BGL/*.log
+data/**/*.log
+
+# 运行产物
+artifacts/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
