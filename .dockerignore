@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Project artifacts
+artifacts/
+logs/
+data/**/*.log
+data/**/*.csv
+data/**/*.zip
+data/**/*.tar.gz
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Tests
+tests/
+.coverage
+htmlcov/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# CI
+.github/
+
+# Kubernetes
+k8s/
+
+# OS
+.DS_Store
+Thumbs.db

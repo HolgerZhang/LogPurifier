@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logexp
+  labels:
+    name: logexp
+    purpose: log-analysis-experiments
