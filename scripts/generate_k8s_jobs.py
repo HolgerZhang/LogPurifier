@@ -47,8 +47,8 @@ spec:
           - "{window}"
           - "--models"
           - "{model}"
-          - "--artifacts-dir"
-          - "/artifacts"
+          - "--artifacts"
+          - "/app/artifacts"
           - "--run-id"
           - "{dataset_lower}-{model_lower}-w{window}"
           - "--log-level"
@@ -64,12 +64,12 @@ spec:
 
         volumeMounts:
         - name: data
-          mountPath: /data
+          mountPath: /app/data
           readOnly: true
         - name: artifacts
-          mountPath: /artifacts
+          mountPath: /app/artifacts
         - name: logs
-          mountPath: /logs
+          mountPath: /app/logs
 
         env:
         - name: PYTHONUNBUFFERED

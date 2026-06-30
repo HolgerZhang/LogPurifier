@@ -18,9 +18,9 @@
 - 只装运行时依赖(`uv sync --frozen --no-dev`),不含 pytest 等开发工具。
 
 ### 数据与产物挂载点
-- `/data`:数据集输入(ro 只读挂载)。
-- `/artifacts`:中间结果与最终结果输出(rw 读写挂载)。
-- `/logs`:日志输出(rw)。
+- `/app/data`:数据集输入(ro 只读挂载)。
+- `/app/artifacts`:中间结果与最终结果输出(rw 读写挂载)。
+- `/app/logs`:日志输出(rw)。
 
 ### 默认入口
 - `ENTRYPOINT ["uv", "run", "python", "scripts/run_ad.py"]`,允许 K8s 通过 `args` 传参。
@@ -84,9 +84,9 @@ python scripts/generate_k8s_jobs.py           # 默认 latest
 - **超时**:`activeDeadlineSeconds: 86400`(24 小时),超时自动终止。
 - **重启策略**:`restartPolicy: Never`, `backoffLimit: 0`(失败不重试,便于排查)。
 - **Volume**:
-  - `data-volume`:hostPath 挂 `/nas/LAD/Dataset` 到 `/data`(只读)。
-  - `artifacts-volume`:hostPath 挂 `/nas/logexp-data/reproduction-logpurifier/artifacts` 到 `/artifacts`(读写)。
-  - `logs-volume`:hostPath 挂 `/nas/logexp-data/reproduction-logpurifier/logs` 到 `/logs`(读写)。
+  - `data-volume`:hostPath 挂 `/nas/LAD/Dataset` 到 `/app/data`(只读)。
+  - `artifacts-volume`:hostPath 挂 `/nas/logexp-data/reproduction-logpurifier/artifacts` 到 `/app/artifacts`(读写)。
+  - `logs-volume`:hostPath 挂 `/nas/logexp-data/reproduction-logpurifier/logs` 到 `/app/logs`(读写)。
 - **Labels**:
   - `app: logexp-logpurifier`
   - `component: experiment`
@@ -96,7 +96,7 @@ python scripts/generate_k8s_jobs.py           # 默认 latest
 ### 数据准备
 
 K8s 集群需预先挂载 NAS:
-1. 数据集:`/nas/LAD/Dataset`(含 BGL.log、HDFS.log+anomaly_label.csv 等)。
+1. 数据集:`/nas/LAD/Dataset`,与仓库 `data/` 同构(每个数据集一个子目录,如 `BGL/BGL.log`、`HDFS/HDFS.log`+`HDFS/anomaly_label.csv`)。
 2. 产物:`/nas/logexp-data/reproduction-logpurifier/artifacts`(读写)。
 3. 日志:`/nas/logexp-data/reproduction-logpurifier/logs`(读写)。
 
@@ -119,8 +119,8 @@ K8s 集群需预先挂载 NAS:
 ```bash
 docker build -t logpurifier:test .
 docker run --rm \
-  -v $(pwd)/data:/data:ro \
-  -v $(pwd)/artifacts:/artifacts \
+  -v $(pwd)/data:/app/data:ro \
+  -v $(pwd)/artifacts:/app/artifacts \
   logpurifier:test --dataset BGL --max-lines 10000 --run-id docker-test
 ```
 

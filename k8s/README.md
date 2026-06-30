@@ -7,7 +7,7 @@
 - Kubernetes 集群(1.20+)
 - `kubectl` 已配置访问集群
 - 集群内各节点 NAS 挂载点可用:
-  - `/nas/LAD/Dataset`:数据集目录(BGL.log、HDFS.log 等)
+  - `/nas/LAD/Dataset`:数据集目录,与仓库 `data/` 同构(每个数据集一个子目录,如 `BGL/BGL.log`、`HDFS/HDFS.log`+`HDFS/anomaly_label.csv`)
   - `/nas/logexp-data/reproduction-logpurifier/`:结果输出目录
 
 ## 生成 Job 配置

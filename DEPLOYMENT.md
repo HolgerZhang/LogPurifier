@@ -22,17 +22,17 @@ docker build -t logpurifier:local .
 
 ```bash
 docker run --rm \
-  -v $(pwd)/data:/data:ro \
-  -v $(pwd)/artifacts:/artifacts \
-  -v $(pwd)/logs:/logs \
+  -v $(pwd)/data:/app/data:ro \
+  -v $(pwd)/artifacts:/app/artifacts \
+  -v $(pwd)/logs:/app/logs \
   registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:latest \
   --dataset BGL --window 300 --models IM OCSVM --run-id docker-test-v1
 ```
 
 Mount points:
-- `/data`: datasets (read-only)
-- `/artifacts`: results and intermediate caches (read-write)
-- `/logs`: log files (read-write)
+- `/app/data`: datasets (read-only)
+- `/app/artifacts`: results and intermediate caches (read-write)
+- `/app/logs`: log files (read-write)
 
 Pass arguments after the image name; they go directly to `scripts/run_ad.py`.
 
@@ -81,9 +81,9 @@ ls /nas/logexp-data/reproduction-logpurifier/artifacts/
 
 You may need to mount NAS (or any shared storage) at `/nas` in all Kubernetes nodes. The following paths are used in the Job manifests:
 
-- `/data` → `/nas/LAD/Dataset` (datasets, read-only)
-- `/artifacts` → `/nas/logexp-data/reproduction-logpurifier/artifacts` (results)
-- `/logs` → `/nas/logexp-data/reproduction-logpurifier/logs` (log files)
+- `/app/data` → `/nas/LAD/Dataset` (datasets, read-only)
+- `/app/artifacts` → `/nas/logexp-data/reproduction-logpurifier/artifacts` (results)
+- `/app/logs` → `/nas/logexp-data/reproduction-logpurifier/logs` (log files)
 
 ### Job Matrix
 
@@ -129,12 +129,12 @@ kubectl apply -f k8s/jobs/bgl/bgl-im-w300.yaml
 
 ### Volumes
 
-- `/data`: mount datasets here
-- `/artifacts`: results persist here (default `artifacts/` inside container maps to this)
-- `/logs`: log output
+- `/app/data`: mount datasets here
+- `/app/artifacts`: results persist here (the CLI default `artifacts/` resolves here under WORKDIR `/app`)
+- `/app/logs`: log output
 
 ### Security
 
 - Runs as non-root user
-- Read-only data mount recommended (`-v data:/data:ro`)
+- Read-only data mount recommended (`-v data:/app/data:ro`)
 - No secrets or credentials in image

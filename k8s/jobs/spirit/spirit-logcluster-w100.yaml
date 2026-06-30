@@ -33,8 +33,8 @@ spec:
           - "100"
           - "--models"
           - "LogCluster"
-          - "--artifacts-dir"
-          - "/artifacts"
+          - "--artifacts"
+          - "/app/artifacts"
           - "--run-id"
           - "spirit-logcluster-w100"
           - "--log-level"
@@ -50,12 +50,12 @@ spec:
 
         volumeMounts:
         - name: data
-          mountPath: /data
+          mountPath: /app/data
           readOnly: true
         - name: artifacts
-          mountPath: /artifacts
+          mountPath: /app/artifacts
         - name: logs
-          mountPath: /logs
+          mountPath: /app/logs
 
         env:
         - name: PYTHONUNBUFFERED

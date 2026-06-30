@@ -33,8 +33,8 @@ spec:
           - "1800"
           - "--models"
           - "PCA"
-          - "--artifacts-dir"
-          - "/artifacts"
+          - "--artifacts"
+          - "/app/artifacts"
           - "--run-id"
           - "thunderbird-pca-w1800"
           - "--log-level"
@@ -50,12 +50,12 @@ spec:
 
         volumeMounts:
         - name: data
-          mountPath: /data
+          mountPath: /app/data
           readOnly: true
         - name: artifacts
-          mountPath: /artifacts
+          mountPath: /app/artifacts
         - name: logs
-          mountPath: /logs
+          mountPath: /app/logs
 
         env:
         - name: PYTHONUNBUFFERED

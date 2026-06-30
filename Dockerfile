@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:0.7.20 /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-cache
+RUN touch README.md && uv sync --frozen --no-dev --no-cache
 
 FROM python:3.11-slim
 
@@ -23,8 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r logpurifier -g 1000 \
     && useradd -r -u 1000 -g logpurifier -d /app -s /sbin/nologin logpurifier \
-    && mkdir -p /data /artifacts /logs \
-    && chown -R logpurifier:logpurifier /app /artifacts /logs
+    && mkdir -p /app/data /app/artifacts /app/logs \
+    && chown -R logpurifier:logpurifier /app
 
 COPY --from=ghcr.io/astral-sh/uv:0.7.20 /uv /usr/local/bin/uv
 COPY --from=builder --chown=logpurifier:logpurifier /build/.venv /app/.venv
@@ -41,7 +41,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 USER logpurifier
 
-VOLUME ["/data", "/artifacts", "/logs"]
+VOLUME ["/app/data", "/app/artifacts", "/app/logs"]
 
 ENTRYPOINT ["uv", "run", "python", "scripts/run_ad.py"]
 CMD ["--help"]
