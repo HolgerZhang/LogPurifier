@@ -4,13 +4,19 @@
 
 ## 阶段与产物
 
-| 阶段 | 输入 | 产物文件（artifacts/<run>/） | 复用价值 |
+行级数据集（BGL/Thunderbird）：parse → window → split → purify → evaluate。
+HDFS：sessions → split → purify → evaluate（无 window，下游缓存键 `w0`）。
+
+| 阶段 | 输入 | 产物文件（artifacts/<dataset>/） | 复用价值 |
 |------|------|------------------------------|----------|
-| parse | BGL.log, max_lines | `parsed_{max_lines}.parquet`（timestamp/template_id/is_anomaly） | 改窗口不必重解析（解析最重） |
-| window | parsed, window_seconds | `windows_w{W}.npz`（sequences, labels） | 改划分/模型不必重分窗 |
-| split | windows, ratio, seed | `split_w{W}_s{seed}.npz`（train/test/labels） | 固定划分，模型间共享 |
+| parse（行级） | 日志, dataset, max_lines | `parsed_{max_lines}.parquet`（timestamp/template_id/is_anomaly） | 改窗口不必重解析（解析最重） |
+| sessions（HDFS） | HDFS.log, label_csv, max_lines | `sessions_{max_lines}.npz`（sequences, labels） | block 分组复用 |
+| window（行级） | parsed, window_seconds | `windows_w{W}.npz`（sequences, labels） | 改划分/模型不必重分窗 |
+| split | sequences, ratio, seed | `split_w{W}_s{seed}.npz`（train/test/labels） | 固定划分，模型间共享 |
 | purify | train_seqs, strategy | `tfs_w{W}_s{seed}_{strategy}.json`（Tfs） | 清洗结果复用 |
 | evaluate | split, tfs, 模型参数 | `results_w{W}_s{seed}_{strategy}.csv`（P/R/F1/train_s） | 最终指标 |
+
+> `{W}` 为窗口秒数（行级）或 `0`（HDFS session）。
 
 ## 缓存键与命中
 
@@ -29,9 +35,9 @@
 ## 接口
 
 ```python
-run_pipeline(bgl_path, dataset, window, max_lines, strategy, seed, train_ratio,
+run_pipeline(data_path, dataset, window, max_lines, label_path, strategy, seed, train_ratio,
              models, oov_min_count, model_kwargs, artifacts_dir, force=False)
-  -> (results, tfs)   # 各阶段自动缓存
+  -> (results, tfs)   # 各阶段自动缓存；HDFS 需传 label_path
 ```
 
 ## 验收

@@ -47,12 +47,13 @@ def test_windowing_real_bgl_slice():
 def test_end_to_end_pipeline_real_bgl(tmp_path):
     """Real BGL slice runs org vs cleaned multi-model and yields valid metrics."""
     results, _ = run_pipeline(
-        bgl_path=str(BGL_SLICE),
-        dataset="BGL_200k_test",
+        data_path=str(BGL_SLICE),
+        dataset="BGL",
         window=300,
         max_lines=SLICE_LINES,
         models=["OCSVM", "PCA"],
         artifacts_dir=str(tmp_path),
+        run_id="test",
     )
     variants = {(r.model, r.variant) for r in results}
     assert ("OCSVM", "org") in variants
@@ -61,17 +62,18 @@ def test_end_to_end_pipeline_real_bgl(tmp_path):
         assert 0.0 <= r.precision <= 1.0
         assert 0.0 <= r.recall <= 1.0
         assert 0.0 <= r.f1 <= 1.0
-    assert (tmp_path / "BGL_200k_test" / "parsed_200000.parquet").exists()
+    assert (tmp_path / "BGL" / "test" / "parsed_200000.parquet").exists()
 
 
 def test_pipeline_cache_hit_second_run(tmp_path):
     """Second run hits the parse cache (parsed file not rewritten)."""
     kw = dict(
-        bgl_path=str(BGL_SLICE), dataset="BGL_cache_test", window=300,
+        data_path=str(BGL_SLICE), dataset="BGL", window=300,
         max_lines=SLICE_LINES, models=["OCSVM"], artifacts_dir=str(tmp_path),
+        run_id="test",
     )
     run_pipeline(**kw)
-    parsed = tmp_path / "BGL_cache_test" / "parsed_200000.parquet"
+    parsed = tmp_path / "BGL" / "test" / "parsed_200000.parquet"
     mtime1 = parsed.stat().st_mtime
     run_pipeline(**kw)
     assert parsed.stat().st_mtime == mtime1

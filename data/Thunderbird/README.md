@@ -6,6 +6,8 @@ For more detailed information, please visit the project page: https://www.usenix
 ### Download
 The raw logs are available for downloading at https://github.com/logpai/loghub. Direct download link: https://zenodo.org/records/8196385/files/Thunderbird.tar.gz?download=1
 
+Decompress and place `Thunderbird.log` at `data/Thunderbird/Thunderbird.log`.
+
 ### Citation
 If you use this dataset from loghub in your research, please cite the following papers.
 + Adam J. Oliner, Jon Stearley. What Supercomputers Say: A Study of Five System Logs. In Proc. of IEEE/IFIP International Conference on Dependable Systems and Networks (DSN), 2007.

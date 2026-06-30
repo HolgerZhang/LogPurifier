@@ -42,39 +42,54 @@ uv sync --extra dev
 
 ### Data
 
-- BGL comes from [loghub](https://github.com/logpai/loghub). Download the full log and place it
-at `data/BGL/BGL.log` (~709MB, 4.74M lines). See [`data/BGL/README.md`](data/BGL/README.md)
-for the dataset description, download link, and citation.
+Place each dataset under `data/<name>/`; see the per-dataset `data/<name>/README.md` for
+description, download link, and citation.
+
+- **BGL / Thunderbird / Spirit** (line-level alert label, time window): e.g. `data/BGL/BGL.log`.
+- **HDFS v1** (block-id session): `data/HDFS/HDFS.log` + `data/HDFS/anomaly_label.csv`.
 
 ### Run
 
 ```bash
-# default IM+OCSVM, full BGL, 300s window
-uv run python scripts/run_ad.py --window 300
+# default IM+OCSVM, BGL, 300s window
+uv run python scripts/run_ad.py --dataset BGL --window 300
 
-# multi-model comparison on full BGL
-uv run python scripts/run_ad.py --models IM OCSVM PCA IForest
+# Thunderbird / Spirit (bound parsing on the huge log)
+uv run python scripts/run_ad.py --dataset Spirit --max-lines 1000000
 
-# debug logging + force recompute
-uv run python scripts/run_ad.py --force --log-level DEBUG
+# HDFS v1 (session-based; --window not used)
+uv run python scripts/run_ad.py --dataset HDFS
+
+# multi-model comparison
+uv run python scripts/run_ad.py --dataset BGL --models IM OCSVM PCA IForest
+
+# specify run ID to reuse caches (for failed-run retry or sharing artifacts)
+uv run python scripts/run_ad.py --dataset BGL --run-id my-experiment-v1
 ```
 
 `--max-lines N` limits parsing to the first N lines (default 0 = full file). Outputs P/R/F1
 and training time for each model under `org` (uncleaned) and `cleaned`.
 
+Use `--run-id <id>` to reuse a previous run's caches or ensure deterministic paths in automation.
+
 ### Stage caching
 
-Each stage persists to `artifacts/<dataset>/` and is skipped on cache hit:
+Each run is isolated under `artifacts/<dataset>/<run_id>/`. The run ID is auto-generated
+(timestamp + random suffix) or specified via `--run-id`. Stages persist and are skipped on cache hit:
 
 | Stage | Artifact |
 |-------|----------|
-| parse | `parsed_{max_lines}.parquet` |
-| window | `windows_w{W}.npz` |
+| parse (line) | `parsed_{max_lines}.parquet` |
+| sessions (HDFS) | `sessions_{max_lines}.npz` |
+| window (line) | `windows_w{W}.npz` |
 | split | `split_w{W}_s{seed}.npz` |
 | purify | `tfs_w{W}_s{seed}_{strategy}.json` |
 | evaluate | `results_w{W}_s{seed}_{strategy}.csv` |
 
 Changing the window does not re-parse; changing the model does not re-window. Logs go to `logs/`.
+
+**Parallel runs**: Each run gets a unique ID to avoid collisions. Reuse a run ID via `--run-id <id>`
+to continue or share caches.
 
 ### Layout
 
@@ -83,11 +98,12 @@ src/logpurifier/
   dependency.py   dependency score (Section III-A)
   clustering.py   Mean-Shift segmentation (Section III-B)
   purifier.py     LogPurifier main flow (Algorithm 1)
-  parsing.py      Drain3 parsing (BGL)
+  datasets.py     dataset registry (BGL/Thunderbird line specs + HDFS)
+  parsing.py      Drain3 parsing (line datasets + HDFS sessions)
   windowing.py    fixed time-window segmentation
   models.py       model registry (IM/OCSVM/PCA/IForest/LogCluster)
   ad_eval.py      org vs cleaned evaluation
-  pipeline.py     per-stage on-disk caching
+  pipeline.py     per-stage on-disk caching (line / session dispatch)
   logging_config.py  loguru setup
 specs/            Spec-Driven specifications (Chinese)
 third_party/loglizer/   vendored loglizer (unmodified)
@@ -138,39 +154,52 @@ uv sync --extra dev
 
 ### 数据
 
-- BGL 来自 [loghub](https://github.com/logpai/loghub)。下载完整日志放到 `data/BGL/BGL.log`
-（约 709MB，474 万行）。数据集说明、下载链接与引用见
-[`data/BGL/README.md`](data/BGL/README.md)。
+各数据集放到 `data/<name>/`；说明、下载链接与引用见各自的 `data/<name>/README.md`。
+
+- **BGL / Thunderbird / Spirit**（行级告警标签，时间窗口）：如 `data/BGL/BGL.log`。
+- **HDFS v1**（block-id session）：`data/HDFS/HDFS.log` + `data/HDFS/anomaly_label.csv`。
 
 ### 运行
 
 ```bash
-# 默认 IM+OCSVM，完整 BGL，300s 窗口
-uv run python scripts/run_ad.py --window 300
+# 默认 IM+OCSVM，BGL，300s 窗口
+uv run python scripts/run_ad.py --dataset BGL --window 300
 
-# 完整 BGL 上多模型对照
-uv run python scripts/run_ad.py --models IM OCSVM PCA IForest
+# Thunderbird / Spirit（超大日志，限制解析行数）
+uv run python scripts/run_ad.py --dataset Spirit --max-lines 1000000
 
-# 调试日志 + 强制重算缓存
-uv run python scripts/run_ad.py --force --log-level DEBUG
+# HDFS v1（session 切分，--window 不生效）
+uv run python scripts/run_ad.py --dataset HDFS
+
+# 多模型对照
+uv run python scripts/run_ad.py --dataset BGL --models IM OCSVM PCA IForest
+
+# 指定 run ID 以复用缓存（失败重跑或共享产物）
+uv run python scripts/run_ad.py --dataset BGL --run-id my-experiment-v1
 ```
 
 `--max-lines N` 限制只解析前 N 行（默认 0 = 全量）。输出每个模型在 org（未清洗）与
 cleaned（清洗后）下的 P/R/F1 与训练耗时。
 
+使用 `--run-id <id>` 复用之前运行的缓存,或在自动化中确保路径稳定。
+
 ### 中间结果缓存
 
-各阶段产物落盘到 `artifacts/<dataset>/`，命中即跳过：
+每次运行隔离在 `artifacts/<dataset>/<run_id>/` 下。run_id 自动生成（时间戳+随机后缀）或通过
+`--run-id` 指定。各阶段产物落盘，命中即跳过：
 
 | 阶段 | 产物 |
 |------|------|
-| parse | `parsed_{max_lines}.parquet` |
-| window | `windows_w{W}.npz` |
+| parse（行级） | `parsed_{max_lines}.parquet` |
+| sessions（HDFS） | `sessions_{max_lines}.npz` |
+| window（行级） | `windows_w{W}.npz` |
 | split | `split_w{W}_s{seed}.npz` |
 | purify | `tfs_w{W}_s{seed}_{strategy}.json` |
 | evaluate | `results_w{W}_s{seed}_{strategy}.csv` |
 
 改窗口不必重解析；调模型不必重分窗。日志写入 `logs/`。
+
+**并行运行**：每次运行获得唯一 ID 避免冲突。通过 `--run-id <id>` 复用已有运行的缓存。
 
 ### 项目结构
 
@@ -179,11 +208,12 @@ src/logpurifier/
   dependency.py   依赖分数（§III-A）
   clustering.py   Mean-Shift 分割（§III-B）
   purifier.py     LogPurifier 主流程（Algorithm 1）
-  parsing.py      Drain3 解析（BGL）
+  datasets.py     数据集注册表（BGL/Thunderbird 行级 spec + HDFS）
+  parsing.py      Drain3 解析（行级数据集 + HDFS session）
   windowing.py    固定时间窗口切分
   models.py       模型注册表（IM/OCSVM/PCA/IForest/LogCluster）
   ad_eval.py      org vs cleaned 评估编排
-  pipeline.py     分阶段落盘缓存
+  pipeline.py     分阶段落盘缓存（行级 / session 分派）
   logging_config.py  loguru 配置
 specs/            Spec-Driven 规格文档（中文）
 third_party/loglizer/   vendored loglizer（未改动）

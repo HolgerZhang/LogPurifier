@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: logexp-logpurifier-job-bgl-iforest-w3600
+  namespace: logexp
+  labels:
+    app: logexp-logpurifier
+    component: experiment
+    dataset: bgl
+    model: iforest
+    window: "w3600"
+spec:
+  activeDeadlineSeconds: 86400  # 24 hours
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: logexp-logpurifier
+        component: experiment
+        dataset: bgl
+        model: iforest
+        window: "w3600"
+    spec:
+      restartPolicy: Never
+
+      containers:
+      - name: logexp-logpurifier-pod-bgl-iforest-w3600
+        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.0
+        args:
+          - "--dataset"
+          - "BGL"
+          - "--window"
+          - "3600"
+          - "--models"
+          - "IForest"
+          - "--artifacts-dir"
+          - "/artifacts"
+          - "--run-id"
+          - "bgl-iforest-w3600"
+          - "--log-level"
+          - "INFO"
+
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+
+        volumeMounts:
+        - name: data
+          mountPath: /data
+          readOnly: true
+        - name: artifacts
+          mountPath: /artifacts
+        - name: logs
+          mountPath: /logs
+
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+
+      volumes:
+      - name: data
+        hostPath:
+          path: /nas/LAD/Dataset
+          type: Directory
+      - name: artifacts
+        hostPath:
+          path: /nas/logexp-data/reproduction-logpurifier/artifacts
+          type: DirectoryOrCreate
+      - name: logs
+        hostPath:
+          path: /nas/logexp-data/reproduction-logpurifier/logs
+          type: DirectoryOrCreate

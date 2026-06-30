@@ -1,6 +1,8 @@
 """AD reproduction flow with per-stage on-disk caching under artifacts/.
 
-Stages: parse -> window -> split -> purify -> evaluate. See specs/05-persistence.md.
+Line datasets (BGL/Thunderbird): parse -> window -> split -> purify -> evaluate.
+HDFS (session): sessions -> split -> purify -> evaluate (no window, win_key=0).
+See specs/05-persistence.md.
 """
 
 from __future__ import annotations
@@ -19,8 +21,9 @@ from .ad_eval import (
     remove_templates,
     split_train_test,
 )
+from .datasets import is_session_dataset
 from .logging_config import logger
-from .parsing import ParsedEntry, parse_bgl_file
+from .parsing import ParsedEntry, load_hdfs_sessions, parse_line_file
 from .windowing import fixed_time_windows
 
 
@@ -45,9 +48,9 @@ def _load_seqs(path: Path) -> tuple[list[list[int]], list[int]]:
 
 
 def stage_parse(
-    bgl_path: str, max_lines: int, out: Path, force: bool
+    path: str, dataset: str, max_lines: int, out: Path, force: bool
 ) -> tuple[list[ParsedEntry], bool]:
-    """Returns (entries, cache_hit). Cache key includes max_lines."""
+    """Parse a line dataset. Returns (entries, cache_hit). Cache key includes max_lines."""
     tag = "all" if not max_lines else str(max_lines)
     cache = out / f"parsed_{tag}.parquet"
     if cache.exists() and not force:
@@ -57,7 +60,7 @@ def stage_parse(
             for ts, tid, a in zip(df.timestamp, df.template_id, df.is_anomaly)
         ]
         return entries, True
-    entries = parse_bgl_file(bgl_path, max_lines=max_lines)
+    entries = parse_line_file(path, dataset, max_lines=max_lines)
     pd.DataFrame(
         {
             "timestamp": [e.timestamp for e in entries],
@@ -66,6 +69,19 @@ def stage_parse(
         }
     ).to_parquet(cache)
     return entries, False
+
+
+def stage_sessions(
+    log_path: str, label_path: str, max_lines: int, out: Path, force: bool
+) -> tuple[tuple[list[list[int]], list[int]], bool]:
+    """Parse HDFS into (sequences, labels). Returns ((seqs, labels), cache_hit)."""
+    tag = "all" if not max_lines else str(max_lines)
+    cache = out / f"sessions_{tag}.npz"
+    if cache.exists() and not force:
+        return _load_seqs(cache), True
+    seqs, labels = load_hdfs_sessions(log_path, label_path, max_lines)
+    _save_seqs(cache, seqs, labels)
+    return (seqs, labels), False
 
 
 def stage_window(
@@ -114,10 +130,11 @@ def stage_purify(
 
 
 def run_pipeline(
-    bgl_path: str = "data/BGL/BGL.log",
+    data_path: str = "data/BGL/BGL.log",
     dataset: str = "BGL",
     window: int = 300,
     max_lines: int = 0,
+    label_path: str | None = None,
     strategy: str = "label",
     seed: int = 42,
     train_ratio: float = 0.8,
@@ -125,35 +142,60 @@ def run_pipeline(
     oov_min_count: int = 10,
     model_kwargs: dict | None = None,
     artifacts_dir: str = "artifacts",
+    run_id: str | None = None,
     force: bool = False,
 ) -> tuple[list[ModelResult], set[int]]:
-    """Run the full AD reproduction flow with per-stage caching."""
-    out = Path(artifacts_dir) / dataset
+    """Run the full AD reproduction flow with per-stage caching.
+
+    Line datasets use time windows; HDFS uses block_id sessions (window ignored, win_key=0).
+    Each run is isolated under artifacts/<dataset>/<run_id>/. If run_id is None, generates
+    an ID from current timestamp (YYYYMMDD_HHMMSS) concatenated with a 6-character hex UUID
+    fragment to prevent collisions when multiple runs start in the same second.
+    """
+    if run_id is None:
+        from datetime import datetime
+        import uuid
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        suffix = uuid.uuid4().hex[:6]
+        run_id = f"{ts}_{suffix}"
+
+    out = Path(artifacts_dir) / dataset / run_id
     out.mkdir(parents=True, exist_ok=True)
+    session = is_session_dataset(dataset)
+    win_key = 0 if session else window
     (out / "meta.json").write_text(
-        json.dumps({"max_lines": max_lines, "window": window, "seed": seed}, indent=2)
+        json.dumps({"run_id": run_id, "max_lines": max_lines, "window": window, "seed": seed}, indent=2)
     )
     logger.info(
-        "start AD flow: dataset={} window={}s max_lines={} strategy={} models={}",
-        dataset, window, max_lines or "all", strategy, models or "default(IM,OCSVM)",
+        "start AD flow: dataset={} run_id={} {} max_lines={} strategy={} models={}",
+        dataset, run_id, "session" if session else f"window={window}s",
+        max_lines or "all", strategy, models or "default(IM,OCSVM)",
     )
 
     t0 = time.perf_counter()
-    entries, hit = stage_parse(bgl_path, max_lines, out, force)
-    logger.info(
-        "[parse] {} entries ({})",
-        len(entries), "cache hit" if hit else f"parsed in {time.perf_counter()-t0:.1f}s",
-    )
+    if session:
+        if not label_path:
+            raise ValueError("HDFS requires label_path (anomaly_label.csv)")
+        (seqs, labels), hit = stage_sessions(data_path, label_path, max_lines, out, force)
+        logger.info(
+            "[sessions] {} blocks, {} anomalous ({})",
+            len(seqs), sum(labels), "cache hit" if hit else f"in {time.perf_counter()-t0:.1f}s",
+        )
+    else:
+        entries, hit = stage_parse(data_path, dataset, max_lines, out, force)
+        logger.info(
+            "[parse] {} entries ({})",
+            len(entries), "cache hit" if hit else f"parsed in {time.perf_counter()-t0:.1f}s",
+        )
+        seqs, labels = stage_window(entries, window, out, force)
+        logger.info("[window] {} window sequences, {} anomalous", len(seqs), sum(labels))
 
-    seqs, labels = stage_window(entries, window, out, force)
-    logger.info("[window] {} window sequences, {} anomalous", len(seqs), sum(labels))
-
-    tr, te, te_labels = stage_split(seqs, labels, window, train_ratio, seed, out, force)
+    tr, te, te_labels = stage_split(seqs, labels, win_key, train_ratio, seed, out, force)
     logger.info(
         "[split] train {} / test {} ({} anomalous)", len(tr), len(te), sum(te_labels)
     )
 
-    tfs = stage_purify(tr, window, seed, strategy, out, force)
+    tfs = stage_purify(tr, win_key, seed, strategy, out, force)
     logger.info("[purify] free-standing templates Tfs = {}", len(tfs))
 
     logger.info("[evaluate] org (uncleaned) ...")
@@ -166,8 +208,8 @@ def run_pipeline(
         cl_tr, cl_te, te_labels, "cleaned", models, oov_min_count, model_kwargs
     )
 
-    _save_results(out, results, window, seed, strategy)
-    logger.info("done, results written to {}", out / f"results_w{window}_s{seed}_{strategy}.csv")
+    _save_results(out, results, win_key, seed, strategy)
+    logger.info("done, results written to {}", out / f"results_w{win_key}_s{seed}_{strategy}.csv")
     return results, tfs
 
 
