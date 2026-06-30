@@ -3,7 +3,7 @@ BGL is an open dataset of logs collected from a BlueGene/L supercomputer system 
 
 For more detailed information, please visit the project page: https://www.usenix.org/cfdr-data#hpc4.
 
-## Download
+### Download
 The raw logs are available for downloading at https://github.com/logpai/loghub. Direct download link: https://zenodo.org/records/8196385/files/BGL.zip?download=1
 
 ### Citation
