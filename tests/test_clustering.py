@@ -22,9 +22,11 @@ def test_separated_groups_identifies_low_group():
     assert segment_free_standing(ms) == {4, 5, 6}
 
 
-def test_threshold_strategy_also_identifies_low_group():
-    ms = {0: 0.90, 1: 0.88, 2: 0.92, 4: 0.10, 5: 0.08, 6: 0.12}
-    assert segment_free_standing(ms, strategy="threshold") == {4, 5, 6}
+def test_tied_but_separable_identifies_low_group():
+    """Tie-heavy data makes estimate_bandwidth return 0; the Silverman fallback keeps
+    Mean-Shift able to split the two levels. Low (0.5) group is flagged free-standing."""
+    ms = {0: 0.5, 1: 0.5, 2: 0.5, 3: 0.5, 4: 0.875, 5: 0.875}
+    assert segment_free_standing(ms) == {0, 1, 2, 3}
 
 
 def test_single_template_returns_empty():

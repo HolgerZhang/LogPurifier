@@ -127,7 +127,6 @@ def evaluate_ad(
     labels: list[int],
     train_ratio: float = 0.8,
     seed: int = 42,
-    strategy: str = "label",
     models: list[str] | None = None,
     oov_min_count: int = 10,
     model_kwargs: dict | None = None,
@@ -145,7 +144,7 @@ def evaluate_ad(
         models, oov_min_count, model_kwargs,
     )
 
-    tfs = identify_free_standing(train_seqs, strategy=strategy)
+    tfs = identify_free_standing(train_seqs)
     logger.info("LogPurifier identified {} free-standing templates", len(tfs))
     cl_train = remove_templates(train_seqs, tfs)
     cl_test = remove_templates(test_seqs, tfs)

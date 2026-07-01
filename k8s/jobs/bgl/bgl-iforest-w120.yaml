@@ -25,7 +25,7 @@ spec:
 
       containers:
       - name: logexp-logpurifier-pod-bgl-iforest-w120
-        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.0
+        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.1
         args:
           - "--dataset"
           - "BGL"
@@ -38,7 +38,7 @@ spec:
           - "--run-id"
           - "bgl-iforest-w120"
           - "--log-level"
-          - "INFO"
+          - "DEBUG"
 
         resources:
           requests:

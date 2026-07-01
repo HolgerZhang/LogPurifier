@@ -118,13 +118,13 @@ def stage_split(
 
 
 def stage_purify(
-    train_seqs: list[list[int]], window: int, seed: int, strategy: str,
+    train_seqs: list[list[int]], window: int, seed: int,
     out: Path, force: bool,
 ) -> set[int]:
-    cache = out / f"tfs_w{window}_s{seed}_{strategy}.json"
+    cache = out / f"tfs_w{window}_s{seed}.json"
     if cache.exists() and not force:
         return set(json.loads(cache.read_text()))
-    tfs = identify_free_standing(train_seqs, strategy=strategy)
+    tfs = identify_free_standing(train_seqs)
     cache.write_text(json.dumps(sorted(tfs)))
     return tfs
 
@@ -135,7 +135,6 @@ def run_pipeline(
     window: int = 300,
     max_lines: int = 0,
     label_path: str | None = None,
-    strategy: str = "label",
     seed: int = 42,
     train_ratio: float = 0.8,
     models: list[str] | None = None,
@@ -167,9 +166,9 @@ def run_pipeline(
         json.dumps({"run_id": run_id, "max_lines": max_lines, "window": window, "seed": seed}, indent=2)
     )
     logger.info(
-        "start AD flow: dataset={} run_id={} {} max_lines={} strategy={} models={}",
+        "start AD flow: dataset={} run_id={} {} max_lines={} models={}",
         dataset, run_id, "session" if session else f"window={window}s",
-        max_lines or "all", strategy, models or "default(IM,OCSVM)",
+        max_lines or "all", models or "default(IM,OCSVM)",
     )
 
     t0 = time.perf_counter()
@@ -195,7 +194,7 @@ def run_pipeline(
         "[split] train {} / test {} ({} anomalous)", len(tr), len(te), sum(te_labels)
     )
 
-    tfs = stage_purify(tr, win_key, seed, strategy, out, force)
+    tfs = stage_purify(tr, win_key, seed, out, force)
     logger.info("[purify] free-standing templates Tfs = {}", len(tfs))
 
     logger.info("[evaluate] org (uncleaned) ...")
@@ -208,11 +207,11 @@ def run_pipeline(
         cl_tr, cl_te, te_labels, "cleaned", models, oov_min_count, model_kwargs
     )
 
-    _save_results(out, results, win_key, seed, strategy)
-    logger.info("done, results written to {}", out / f"results_w{win_key}_s{seed}_{strategy}.csv")
+    _save_results(out, results, win_key, seed)
+    logger.info("done, results written to {}", out / f"results_w{win_key}_s{seed}.csv")
     return results, tfs
 
 
-def _save_results(out: Path, results: list[ModelResult], window, seed, strategy) -> None:
-    cache = out / f"results_w{window}_s{seed}_{strategy}.csv"
+def _save_results(out: Path, results: list[ModelResult], window, seed) -> None:
+    cache = out / f"results_w{window}_s{seed}.csv"
     pd.DataFrame([r.__dict__ for r in results]).to_csv(cache, index=False)

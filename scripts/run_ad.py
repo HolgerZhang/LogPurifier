@@ -35,7 +35,6 @@ def main():
     ap.add_argument("--label-path", default=None, help="HDFS anomaly_label.csv; default data/HDFS/anomaly_label.csv")
     ap.add_argument("--window", type=int, default=300, help=f"sizes {WINDOW_SECONDS} (line datasets)")
     ap.add_argument("--max-lines", type=int, default=0, help="0 = all")
-    ap.add_argument("--strategy", default="label", choices=["label", "threshold"])
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument(
         "--models", nargs="+", default=None,
@@ -61,7 +60,6 @@ def main():
         window=args.window,
         max_lines=args.max_lines,
         label_path=label_path,
-        strategy=args.strategy,
         seed=args.seed,
         models=args.models,
         oov_min_count=args.oov_min_count,

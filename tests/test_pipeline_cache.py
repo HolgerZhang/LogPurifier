@@ -32,9 +32,9 @@ def test_split_cache_roundtrip(tmp_path):
 
 def test_purify_cache_roundtrip(tmp_path):
     train = [[1, 2, 3], [1, 2, 3], [1, 2, 99, 3]]
-    tfs1 = stage_purify(train, 300, 42, "label", tmp_path, force=False)
-    assert (tmp_path / "tfs_w300_s42_label.json").exists()
-    tfs2 = stage_purify(train, 300, 42, "label", tmp_path, force=False)
+    tfs1 = stage_purify(train, 300, 42, tmp_path, force=False)
+    assert (tmp_path / "tfs_w300_s42.json").exists()
+    tfs2 = stage_purify(train, 300, 42, tmp_path, force=False)
     assert tfs1 == tfs2
 
 

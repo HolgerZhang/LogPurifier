@@ -83,8 +83,8 @@ Each run is isolated under `artifacts/<dataset>/<run_id>/`. The run ID is auto-g
 | sessions (HDFS) | `sessions_{max_lines}.npz` |
 | window (line) | `windows_w{W}.npz` |
 | split | `split_w{W}_s{seed}.npz` |
-| purify | `tfs_w{W}_s{seed}_{strategy}.json` |
-| evaluate | `results_w{W}_s{seed}_{strategy}.csv` |
+| purify | `tfs_w{W}_s{seed}.json` |
+| evaluate | `results_w{W}_s{seed}.csv` |
 
 Changing the window does not re-parse; changing the model does not re-window. Logs go to `logs/`.
 
@@ -118,6 +118,11 @@ third_party/loglizer/   vendored loglizer (unmodified)
   data, so features use loglizer's native OOV to reduce dimensionality. IM (designed for
   HDFS session windows) often mines few effective invariants under BGL fixed time windows; we
   report its metrics as-is.
+- **Mean-Shift bandwidth**: the paper does not specify a bandwidth. We use sklearn's
+  `estimate_bandwidth`; on tie-heavy data it can return 0 (which makes `MeanShift` error out),
+  so in that case we fall back to Silverman's rule `0.9·min(std, IQR/1.34)·n^(-1/5)` to keep a
+  valid positive bandwidth (Silverman, Bernard W. *Density estimation for statistics and data
+  analysis*. Routledge, 2018).
 
 ### License
 
@@ -194,8 +199,8 @@ cleaned（清洗后）下的 P/R/F1 与训练耗时。
 | sessions（HDFS） | `sessions_{max_lines}.npz` |
 | window（行级） | `windows_w{W}.npz` |
 | split | `split_w{W}_s{seed}.npz` |
-| purify | `tfs_w{W}_s{seed}_{strategy}.json` |
-| evaluate | `results_w{W}_s{seed}_{strategy}.csv` |
+| purify | `tfs_w{W}_s{seed}.json` |
+| evaluate | `results_w{W}_s{seed}.csv` |
 
 改窗口不必重解析；调模型不必重分窗。日志写入 `logs/`。
 
@@ -227,6 +232,10 @@ third_party/loglizer/   vendored loglizer（未改动）
 - **IM 特征**：IM 的不变量搜索在 BGL 时间窗口数据上随事件维度增长扩展性差，故特征用 loglizer
   原生 OOV 限维。IM（原为 HDFS session 窗口设计）在 BGL 固定时间窗口下常挖不出多少有效不变量，
   其指标如实报告。
+- **Mean-Shift 带宽**：论文未规定带宽。本复现用 sklearn 的 `estimate_bandwidth`；当数据大量
+  重复导致它返回 0（会使 `MeanShift` 报错）时，回退到 Silverman 规则
+  `0.9·min(std, IQR/1.34)·n^(-1/5)`，保证带宽为正、可运行（Silverman, Bernard W. *Density
+  estimation for statistics and data analysis*. Routledge, 2018）。
 
 ### 许可证
 

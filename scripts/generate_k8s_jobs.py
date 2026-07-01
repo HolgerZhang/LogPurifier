@@ -52,7 +52,7 @@ spec:
           - "--run-id"
           - "{dataset_lower}-{model_lower}-w{window}"
           - "--log-level"
-          - "INFO"
+          - "DEBUG"
 
         resources:
           requests:

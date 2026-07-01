@@ -35,9 +35,10 @@
 1. **OC-SVM 自实现**：论文用 Loglizer 的 OC-SVM（半监督，仅用正常数据训练）。
    vendored loglizer 自带的 `SVM` 实为**监督式 `LinearSVC`**，语义不符，故本复现用
    `sklearn.svm.OneClassSVM` 实现符合论文语义的半监督 OC-SVM。IM 直接用 loglizer。
-2. **分割用纯 cluster label**：直接取 Mean-Shift 分到「最低中心簇」的模板为 free-standing。
-   存在边界模板误删风险（如 mScore 0.31 被删而 0.29 被留的反常情形）。
-   `clustering.py` 保留 `strategy="threshold"` 接口但默认 `label`。
+2. **分割用纯 cluster label**：直接取 Mean-Shift 分到「最低中心簇」的模板为 free-standing，
+   忠实论文 §III-B，不引入论文之外的分割策略。当 free-standing 与 regular 的 mScore 本身
+   无间隙时无法区分，属该 heuristic 的固有极限。带宽在论文留白处采用 KDE 标准做法
+   （`estimate_bandwidth`，打结退化为 0 时回退 Silverman 经验法则）。
 3. **不含 MI 与 LMM 统计**。
 4. **真实数据集需自行下载**（见 `data/BGL/README.md`）；端到端测试用 BGL 200k 切片。
 5. **非比特级对齐**：论文是 Registered Report，无官方代码与结果，本复现基于论文文字描述。

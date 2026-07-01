@@ -13,14 +13,14 @@ HDFS：sessions → split → purify → evaluate（无 window，下游缓存键
 | sessions（HDFS） | HDFS.log, label_csv, max_lines | `sessions_{max_lines}.npz`（sequences, labels） | block 分组复用 |
 | window（行级） | parsed, window_seconds | `windows_w{W}.npz`（sequences, labels） | 改划分/模型不必重分窗 |
 | split | sequences, ratio, seed | `split_w{W}_s{seed}.npz`（train/test/labels） | 固定划分，模型间共享 |
-| purify | train_seqs, strategy | `tfs_w{W}_s{seed}_{strategy}.json`（Tfs） | 清洗结果复用 |
-| evaluate | split, tfs, 模型参数 | `results_w{W}_s{seed}_{strategy}.csv`（P/R/F1/train_s） | 最终指标 |
+| purify | train_seqs | `tfs_w{W}_s{seed}.json`（Tfs） | 清洗结果复用 |
+| evaluate | split, tfs, 模型参数 | `results_w{W}_s{seed}.csv`（P/R/F1/train_s） | 最终指标 |
 
 > `{W}` 为窗口秒数（行级）或 `0`（HDFS session）。
 
 ## 缓存键与命中
 
-- 每个产物文件名编码其依赖参数（max_lines/window/seed/strategy 等）；参数不同即不同文件，
+- 每个产物文件名编码其依赖参数（max_lines/window/seed 等）；参数不同即不同文件，
   天然避免误复用。
 - 运行前先查产物是否存在：存在则直接加载（除非 `--force` 重算）。
 - `run` 子目录默认按数据集命名（如 `artifacts/BGL/`）；另写 `meta.json` 记录本次
@@ -35,7 +35,7 @@ HDFS：sessions → split → purify → evaluate（无 window，下游缓存键
 ## 接口
 
 ```python
-run_pipeline(data_path, dataset, window, max_lines, label_path, strategy, seed, train_ratio,
+run_pipeline(data_path, dataset, window, max_lines, label_path, seed, train_ratio,
              models, oov_min_count, model_kwargs, artifacts_dir, force=False)
   -> (results, tfs)   # 各阶段自动缓存；HDFS 需传 label_path
 ```

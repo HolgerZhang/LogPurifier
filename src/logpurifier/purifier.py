@@ -9,7 +9,7 @@ from .dependency import Logs, m_score
 
 
 def identify_free_standing(
-    logs: Logs, templates: Iterable[int] | None = None, strategy: str = "label"
+    logs: Logs, templates: Iterable[int] | None = None
 ) -> set[int]:
     """Identify free-standing template set Tfs (logs unchanged). Templates collected if None."""
     if templates is None:
@@ -17,7 +17,7 @@ def identify_free_standing(
     else:
         templates = list(templates)
     scores = m_score(logs, templates)
-    return segment_free_standing(scores, strategy=strategy)
+    return segment_free_standing(scores)
 
 
 def remove_templates(logs: Logs, to_remove: set[int]) -> Logs:
@@ -28,9 +28,9 @@ def remove_templates(logs: Logs, to_remove: set[int]) -> Logs:
 
 
 def purify(
-    logs: Logs, templates: Iterable[int] | None = None, strategy: str = "label"
+    logs: Logs, templates: Iterable[int] | None = None
 ) -> tuple[Logs, set[int]]:
     """Return (cleaned logs Lcl, free-standing set Tfs)."""
-    tfs = identify_free_standing(logs, templates, strategy=strategy)
+    tfs = identify_free_standing(logs, templates)
     cleaned = remove_templates(logs, tfs)
     return cleaned, tfs

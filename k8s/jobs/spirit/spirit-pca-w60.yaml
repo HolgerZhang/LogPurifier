@@ -25,7 +25,7 @@ spec:
 
       containers:
       - name: logexp-logpurifier-pod-spirit-pca-w60
-        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.0
+        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.1
         args:
           - "--dataset"
           - "Spirit"
@@ -38,7 +38,7 @@ spec:
           - "--run-id"
           - "spirit-pca-w60"
           - "--log-level"
-          - "INFO"
+          - "DEBUG"
 
         resources:
           requests:

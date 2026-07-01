@@ -25,7 +25,7 @@ spec:
 
       containers:
       - name: logexp-logpurifier-pod-hdfs-im-w0
-        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.0
+        image: registry.cn-shanghai.aliyuncs.com/holgercloud/logexp-logpurifier:v0.1.1
         args:
           - "--dataset"
           - "HDFS"
@@ -38,7 +38,7 @@ spec:
           - "--run-id"
           - "hdfs-im-w0"
           - "--log-level"
-          - "INFO"
+          - "DEBUG"
 
         resources:
           requests:
